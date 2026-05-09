@@ -91,9 +91,11 @@ const LoginPage = () => {
       login(data.user, data.token);  // Store user + token in context/localStorage
       navigate("/dashboard", { replace: true });
     } catch (err) {
+      // Use the most descriptive available message — never a generic fallback
       const msg =
-        err.response?.data?.message ||
-        (err.code === "ECONNABORTED" ? "Request timed out. Try again." : "Something went wrong.");
+        err.response?.data?.message || // server replied with a JSON error body
+        err.message ||                  // axios interceptor set a readable message
+        "Unable to connect. Please try again.";
       setError(msg);
     } finally {
       setLoading(false);

@@ -12,28 +12,35 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key_change_in_prod";
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-// FIX: Removed app.options("*", cors()) — the wildcard "*" crashes Express 5
-// (path-to-regexp v8) on Node 24. Instead, set preflightContinue: false and
-// optionsSuccessStatus: 204 inside corsOptions — the cors() middleware itself
-// handles OPTIONS preflight automatically when these are set correctly.
+// FIX: Instead of whitelisting specific Vercel preview URLs (which change on
+// every new deployment), we now allow ALL *.vercel.app subdomains with a regex.
+// This means every Vercel preview & production URL is automatically allowed.
 const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://login-react-theta-drab.vercel.app",
-  ],
+  origin: (incomingOrigin, callback) => {
+    // Allow requests with no origin (Postman, curl, Render health checks)
+    if (!incomingOrigin) return callback(null, true);
+
+    const allowed =
+      incomingOrigin === "http://localhost:5173" ||
+      incomingOrigin === "http://localhost:3000" ||
+      /^https:\/\/.*\.vercel\.app$/.test(incomingOrigin); // ✅ all vercel previews
+
+    if (allowed) return callback(null, true);
+
+    console.warn(`CORS blocked: ${incomingOrigin}`);
+    callback(new Error(`CORS: ${incomingOrigin} is not allowed`));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  preflightContinue: false,   // cors() handles OPTIONS itself, don't pass to next()
-  optionsSuccessStatus: 204,  // respond 204 to OPTIONS preflight requests
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
-// Single cors() call handles both preflight (OPTIONS) and actual requests
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// ── Root route (fixes "Cannot GET /" on Render) ───────────────────────────────
+// ── Root route ────────────────────────────────────────────────────────────────
 app.get("/", (_, res) => {
   res.json({
     status: "ok",
