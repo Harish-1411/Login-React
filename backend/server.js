@@ -13,7 +13,15 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key_change_in_prod";
 
 // ── Middleware ────────────────────────────────────────────────────────────────
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://login-react-theta-drab.vercel.app"
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // ── In-memory user store (replace with DB in production) ─────────────────────

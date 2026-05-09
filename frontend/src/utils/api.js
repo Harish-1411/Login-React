@@ -3,7 +3,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://login-react-a5ma.vercel.app/", // Vite proxy forwards this to http://localhost:5000/api
+  baseURL: "https://login-react-api-9qri.onrender.com", // Vite proxy forwards this to http://localhost:5000/api
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
 });
