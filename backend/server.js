@@ -11,10 +11,11 @@ const PORT = process.env.PORT || 5000;
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key_change_in_prod";
 
-// ── FIX: CORS ────────────────────────────────────────────────────────────────
-// Must be the VERY FIRST middleware — before express.json() and all routes.
-// Previous version missed the OPTIONS preflight handler, causing browsers
-// to block POST requests even when the origin was in the whitelist.
+// ── CORS ──────────────────────────────────────────────────────────────────────
+// FIX: Removed app.options("*", cors()) — the wildcard "*" crashes Express 5
+// (path-to-regexp v8) on Node 24. Instead, set preflightContinue: false and
+// optionsSuccessStatus: 204 inside corsOptions — the cors() middleware itself
+// handles OPTIONS preflight automatically when these are set correctly.
 const corsOptions = {
   origin: [
     "http://localhost:5173",
@@ -24,20 +25,15 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 200, // Some browsers (IE11) choke on 204
+  preflightContinue: false,   // cors() handles OPTIONS itself, don't pass to next()
+  optionsSuccessStatus: 204,  // respond 204 to OPTIONS preflight requests
 };
 
-// Handle OPTIONS preflight for ALL routes — this must come before app.use(cors())
-app.options("*", cors(corsOptions));
-
-// Apply CORS to all routes
+// Single cors() call handles both preflight (OPTIONS) and actual requests
 app.use(cors(corsOptions));
-
 app.use(express.json());
 
-// ── FIX: Root route ───────────────────────────────────────────────────────────
-// Without this, Render shows "Cannot GET /" and its health checker
-// marks the service as down, causing it to restart mid-request.
+// ── Root route (fixes "Cannot GET /" on Render) ───────────────────────────────
 app.get("/", (_, res) => {
   res.json({
     status: "ok",
