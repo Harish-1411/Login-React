@@ -1,21 +1,31 @@
 // src/utils/api.js
-// ── Axios instance pre-configured for the auth API ───────────────────────────
 import axios from "axios";
 
+// ── FIX: Use env variable so the URL works in both local dev and production ───
+// Create frontend/.env.local  → VITE_API_URL=http://localhost:5000/api
+// In Vercel dashboard → Settings → Environment Variables →
+//   VITE_API_URL = https://login-react-api-9qri.onrender.com/api
+//
+// Fallback to the hardcoded Render URL so it works even without the env var.
+const BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://login-react-api-9qri.onrender.com/api";
+
 const api = axios.create({
-  baseURL: "https://login-react-api-9qri.onrender.com/api", // Vite proxy forwards this to http://localhost:5000/api
+  baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
-  timeout: 10000,
+  // Render free tier cold-starts take ~10-15s — increase timeout accordingly
+  timeout: 20000,
 });
 
-// ── Request interceptor: attach JWT from localStorage if present ──────────────
+// ── Attach JWT to every request if one is stored ──────────────────────────────
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("ig_token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// ── Response interceptor: auto-logout on 401 ─────────────────────────────────
+// ── Auto-logout on 401, surface errors cleanly ────────────────────────────────
 api.interceptors.response.use(
   (res) => res,
   (err) => {
